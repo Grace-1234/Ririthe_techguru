@@ -1,0 +1,239 @@
+import pandas as pd # pandas is used to load and manipulate data
+import numpy as np # numpy is used to calculate the mean and standard deviation
+
+import matplotlib.pyplot as plt # matplotlib is for drawing graphs
+import matplotlib.colors as colors
+
+from sklearn.model_selection import train_test_split # split  data into training and testing sets
+from sklearn.preprocessing import scale # scale and center data
+
+from sklearn.svm import SVC # this will make a support vector machine for classificaiton
+
+from sklearn.model_selection import GridSearchCV # this will do cross validation
+
+from sklearn.metrics import confusion_matrix # this creates a confusion matrix
+from sklearn.metrics import ConfusionMatrixDisplay 
+from sklearn.metrics import accuracy_score
+
+
+
+df = pd.read_csv('C:/Users/hp/Downloads/Heart-disease-prediction-using-SVM-master/Heart-disease-prediction-using-SVM-master/processed.cleveland.data')
+print(df)
+
+df.columns = ['age',
+              'sex',
+              'cp',
+              'restbp',
+              'chol',
+              'fbs',
+              'restecg',
+              'thalach',
+              'exang',
+              'oldpeak',
+              'slope',
+              'ca',
+              'thal',
+              'hd']
+df.head()
+df.tail()
+
+
+df.dtypes
+
+
+# Replace '?' with null values
+df.replace("?", pd.NA, inplace=True)
+
+# Drop rows with null values
+df.dropna(inplace=True)
+df.tail()
+
+
+df.describe()
+df.info()
+
+df.replace({'hd':{0:'Absence'}},inplace=True)
+df.head()
+df.head()
+
+
+df.replace({'hd':{1:'presence'}},inplace=True)
+df.head()
+
+df.replace({'hd':{3:'presence'}},inplace=True)
+df.head()
+
+df.replace({'hd':{4:'presence'}},inplace=True)
+df.head()
+
+df.replace({'hd':{2:'presence'}},inplace=True)
+df.head(100)
+
+
+df.tail()
+
+df.replace({'hd':{'presence':1,'Absence':0}},inplace=True)
+df.head()
+
+df.head()
+
+X=df.drop(columns='hd', axis=1)
+y=df['hd']
+print(y)
+print(X)
+
+#data splitting
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.7, random_state=42, shuffle=True)
+print(f'X_train: {len(X_train)} X_test: {len(X_test)}')
+print('Data splitting completed.')
+
+X_train = scale(X_train)
+X_test = scale(X_test)
+
+
+param_grid = {'C': [0.1, 1, 10], 'gamma': [0.1, 1, 10], 'kernel': ['rbf']}
+model = GridSearchCV(SVC(), param_grid, cv=5)
+model.fit(X_train, y_train)
+print(f"Best hyperparameters: {model.best_params_}")
+
+
+model.fit(X_train, y_train)
+print('fititng the model is complete')
+
+# Make predictions on the test data
+y_pred = model.predict(X_test)
+
+
+
+
+# Evaluate the accuracy of the model
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy of the SVM model: {accuracy}")
+
+import seaborn as sns
+from sklearn import metrics
+from sklearn.metrics import classification_report
+
+confusion=metrics.confusion_matrix(y_test, y_pred)
+print(confusion)
+TP= confusion[1,1]
+TN= confusion[0,0]
+FP= confusion[0,1]
+FN= confusion[1,0]
+
+print((TP+TN)/float(TP+TN+FN+FN))
+print(metrics.accuracy_score(y_test, y_pred))
+precision=TP/float(TP+FP)
+print(precision)
+
+import seaborn as sns
+from sklearn.metrics import classification_report
+y_pred = model.predict(X_test)
+cm = confusion_matrix(y_test, y_pred)
+side_bar = [0,1]
+
+f, ax = plt.subplots(figsize=(5, 3))
+sns.heatmap(cm, annot=True, linewidth=.5, linecolor="r", fmt=".0f", ax=ax)
+ax.set_xticklabels(side_bar)
+ax.set_yticklabels(side_bar)
+plt.show()
+report = classification_report(y_test, y_pred)
+print(report)
+
+
+from sklearn.metrics import roc_curve, auc
+
+# Fit the model on the training data
+model.fit(X_train, y_train)
+
+# Make predictions on the test data
+y_pred = model.predict(X_test)
+
+# Compute the false positive rate (fpr) and true positive rate (tpr)
+fpr, tpr, thresholds = roc_curve(y_test, y_pred)
+
+# Compute the area under the curve (AUC)
+roc_auc = auc(fpr, tpr)
+
+# Plot the ROC curve
+plt.figure(figsize=(6, 4))
+plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'AUC = {roc_auc:.2f}')
+plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC) Curve')
+plt.legend(loc="lower right")
+plt.show()
+
+
+from sklearn.svm import SVC
+from sklearn.metrics import roc_auc_score
+# Define a range of C values to test
+c_range = [0.1, 1, 10, 100]
+
+# Create an empty list to store the AUC scores for each C value
+auc_scores = []
+
+# Iterate over the C values and train a SVM classifier for each value
+for c in c_range:
+    svm = SVC(C=c, probability=True)
+    svm.fit(X_train, y_train)
+    y_pred_proba = svm.predict_proba(X_test)[:, 1]
+    auc_scores.append(roc_auc_score(y_test, y_pred_proba))
+
+# Plot the AUC scores for each C value
+plt.plot(c_range, auc_scores)
+plt.xscale('log')
+plt.xlabel('C value')
+plt.ylabel('AUC score')
+plt.title('SVM AUC curve')
+plt.show()
+
+#import matplotlib.pyplot as plt
+#import numpy as np
+#from sklearn import svm
+#from sklearn.model_selection import train_test_split
+
+#model = svm.SVC(kernel='linear', C=1, gamma='auto')
+#X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, shuffle=True)
+#model.fit(X_train, y_train)
+#y_pred = model.predict(X_test)
+
+fig, ax = plt.subplots()
+unique, counts = np.unique(y_pred, return_counts=True) # count the occurrence of each unique class
+ax.bar(unique, counts, align='center', alpha=0.5)
+ax.set_xticks(unique)
+ax.set_xlabel('Predicted Target')
+ax.set_ylabel('Count')
+ax.set_title('Heart Disease SVM Model Predictions')
+plt.show()
+
+import pickle
+import numpy as np
+# Load the saved model from file
+
+with open('svm_model.pickle', 'wb') as f:
+    pickle.dump(model, f)
+    
+# Define a function to preprocess the input data
+def preprocess_input(input_data):
+    # Your preprocessing code here
+    # Convert input data to numpy array
+    input_array = np.array(input_data).reshape(1, -1)
+    return input_array
+
+# Define a function to make predictions using the SVM model
+def predict_heart_disease(input_data):
+    # Preprocess the input data
+    preprocessed_data = preprocess_input(input_data)
+    # Make predictions using the SVM model
+    predictions = model.predict(preprocessed_data)
+    return predictions[0]
+
+# Example usage
+input_data = [67.0,1.0,4.0,160.0,286.0,0.0,2.0,108.0,1.0,1.5,2.0,3.0,3.0]
+prediction = predict_heart_disease(input_data)
+print('Heart disease prediction:', prediction)
